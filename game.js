@@ -81,12 +81,12 @@ function PlayGame() {
 
   // preload images + audio
   this.preload = function () {
-    this.load.image("target", "../assets/images/target.png");
-    this.load.image("knife", "../assets/images/knife.png");
-    this.load.image("apple", "../assets/images/apple.png"); // preload apple
-    this.load.audio("bgMusic", "../assets/audio/bg.mp3");
-    this.load.audio("hit", "../assets/audio/hit.mp3");
-    this.load.audio("collision", "../assets/audio/collision.mp3");
+  this.load.image("target", "assets/images/target.png");
+  this.load.image("knife", "assets/images/knife.png");
+  this.load.image("apple", "assets/images/apple.png"); // preload apple
+  this.load.audio("bgMusic", "assets/audio/bg.mp3");
+  this.load.audio("hit", "assets/audio/hit.mp3");
+  this.load.audio("collision", "assets/audio/collision.mp3");
   };
 
   // create objects

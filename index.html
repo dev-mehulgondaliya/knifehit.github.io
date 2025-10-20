@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Knife Hit Game</title>
+    <style>
+      body {
+        background: radial-gradient(circle at top, #222, #000);
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        font-family: "Poppins", sans-serif;
+        color: white;
+      }
+
+      /* center start screen */
+      #startScreen {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+
+      #gameTitle {
+        font-size: 3em;
+        letter-spacing: 2px;
+        text-shadow: 0 0 20px #ff6600;
+        animation: glow 2s infinite alternate;
+      }
+
+      @keyframes glow {
+        from {
+          text-shadow: 0 0 10px #ff6600, 0 0 20px #ff6600;
+        }
+        to {
+          text-shadow: 0 0 30px #ff3300, 0 0 40px #ff3300;
+        }
+      }
+
+      .menu-btn {
+        background: linear-gradient(45deg, #ff6600, #ff3300);
+        border: none;
+        border-radius: 10px;
+        padding: 15px 40px;
+        font-size: 1.2em;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(255, 100, 0, 0.3);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .menu-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 25px rgba(255, 100, 0, 0.6);
+      }
+
+      canvas {
+        display: none;
+        margin: 0;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      #settings {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .setting-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 10px 20px;
+        border-radius: 8px;
+      }
+
+      .back-btn {
+        background: #444;
+        color: white;
+        padding: 10px 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .back-btn:hover {
+        background: #666;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Start Screen -->
+    <div id="startScreen">
+      <div id="gameTitle">🎯 Knife Hit</div>
+      <button class="menu-btn" id="playBtn">▶ Play</button>
+      <button class="menu-btn" id="settingsBtn">⚙ Settings</button>
+    </div>
+
+    <!-- Settings Menu -->
+    <div id="settings">
+      <div class="setting-item">
+        Background Sound:
+        <input type="checkbox" id="bgSoundToggle" />
+      </div>
+      <div class="setting-item">
+        Game Sounds (Hit/Collision):
+        <input type="checkbox" id="gameSoundToggle" />
+      </div>
+      <div class="setting-item">
+        Difficulty:
+        <select id="difficultySelect">
+          <option value="easy">Easy</option>
+          <option value="medium" selected>Normal</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+      <div class="back-btn" id="backBtn">← Back</div>
+    </div>
+
+
+        <script>
+      const playBtn = document.getElementById("playBtn");
+      const settingsBtn = document.getElementById("settingsBtn");
+      const startScreen = document.getElementById("startScreen");
+      const settingsMenu = document.getElementById("settings");
+      const backBtn = document.getElementById("backBtn");
+
+      const bgSoundToggle = document.getElementById("bgSoundToggle");
+      const gameSoundToggle = document.getElementById("gameSoundToggle");
+      const difficultySelect = document.getElementById("difficultySelect");
+
+      // initialize controls from localStorage
+      window.addEventListener("load", () => {
+        bgSoundToggle.checked = localStorage.getItem("bgSound") === "true";
+        gameSoundToggle.checked = localStorage.getItem("gameSound") === "true";
+        difficultySelect.value = localStorage.getItem("difficulty") || "medium";
+      });
+
+      // persist settings immediately when changed
+      bgSoundToggle.addEventListener("change", () => {
+        localStorage.setItem("bgSound", bgSoundToggle.checked);
+      });
+
+      gameSoundToggle.addEventListener("change", () => {
+        localStorage.setItem("gameSound", gameSoundToggle.checked);
+      });
+
+      difficultySelect.addEventListener("change", () => {
+        localStorage.setItem("difficulty", difficultySelect.value);
+      });
+
+      playBtn.onclick = () => {
+        // ensure settings persisted (redundant but safe)
+        localStorage.setItem("bgSound", bgSoundToggle.checked);
+        localStorage.setItem("gameSound", gameSoundToggle.checked);
+        localStorage.setItem("difficulty", difficultySelect.value);
+
+        startScreen.style.display = "none";
+        const canvas = document.querySelector("canvas");
+        if (canvas) canvas.style.display = "block";
+      };
+
+      settingsBtn.onclick = () => {
+        startScreen.style.display = "none";
+        settingsMenu.style.display = "flex";
+      };
+
+      backBtn.onclick = () => {
+        // settingsMenu.style.display = "none";
+        // startScreen.style.display = "flex";
+        window.location.reload();
+      };
+    </script>
+
+
+    <!-- Phaser Game -->
+    <script src="phaser.min.js"></script>
+    <script src="game.js"></script>
+
+
+  </body>
+</html>

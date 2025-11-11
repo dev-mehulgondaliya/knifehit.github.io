@@ -1,7 +1,7 @@
 // === SETTINGS FROM localStorage ===
-const difficulty = localStorage.getItem("difficulty") || "medium";
 let bgSoundEnabled = localStorage.getItem("bgSound") === "true";
 let gameSoundEnabled = localStorage.getItem("gameSound") === "true";
+let currentLevel = parseInt(localStorage.getItem("currentLevel")) || 1;
 
 let bgMusic; // background music reference
 let hitSound, collisionSound;
@@ -9,14 +9,138 @@ let hitSound, collisionSound;
 // the game itself
 var game;
 
-// global game options
-var gameOptions = {
-  rotationSpeed:
-    difficulty === "easy" ? 2 :
-    difficulty === "hard" ? 5 : 3, // easy=slow, medium=normal, hard=fast
-  throwSpeed: 150,
-  totalKnives: 5
+// Level configurations
+const levelConfigs = {
+  1: { // Basic gameplay
+    rotationSpeed: 2,
+    throwSpeed: 150,
+    totalKnives: 6,
+    minApples: 2,
+    maxApples: 3,
+    minAngleGap: 45,
+    hasMovingApples: false,
+    hasBonusFruits: false,
+    hasObstacles: false,
+    hasVariableSpeed: false
+  },
+  2: { // Slightly harder
+    rotationSpeed: 3,
+    throwSpeed: 150,
+    totalKnives: 5,
+    minApples: 3,
+    maxApples: 4,
+    minAngleGap: 40,
+    hasMovingApples: false,
+    hasBonusFruits: false,
+    hasObstacles: false,
+    hasVariableSpeed: false
+  },
+  3: { // Moving apples
+    rotationSpeed: 3.5,
+    throwSpeed: 150,
+    totalKnives: 5,
+    minApples: 3,
+    maxApples: 4,
+    minAngleGap: 35,
+    hasMovingApples: true,
+    hasBonusFruits: false,
+    hasObstacles: false,
+    hasVariableSpeed: false
+  },
+  4: { // Bonus fruits
+    rotationSpeed: 4,
+    throwSpeed: 150,
+    totalKnives: 4,
+    minApples: 2,
+    maxApples: 4,
+    minAngleGap: 35,
+    hasMovingApples: true,
+    hasBonusFruits: true,
+    hasObstacles: false,
+    hasVariableSpeed: false
+  },
+  5: { // Faster & asymmetric
+    rotationSpeed: 4.5,
+    throwSpeed: 150,
+    totalKnives: 4,
+    minApples: 3,
+    maxApples: 5,
+    minAngleGap: 30,
+    hasMovingApples: true,
+    hasBonusFruits: true,
+    hasObstacles: false,
+    hasVariableSpeed: false
+  },
+  6: { // Obstacles
+    rotationSpeed: 4,
+    throwSpeed: 150,
+    totalKnives: 5,
+    minApples: 2,
+    maxApples: 4,
+    minAngleGap: 40,
+    hasMovingApples: true,
+    hasBonusFruits: true,
+    hasObstacles: true,
+    hasVariableSpeed: false
+  },
+  7: { // Dynamic fruits
+    rotationSpeed: 4.5,
+    throwSpeed: 150,
+    totalKnives: 4,
+    minApples: 2,
+    maxApples: 4,
+    minAngleGap: 35,
+    hasMovingApples: true,
+    hasBonusFruits: true,
+    hasObstacles: true,
+    hasVariableSpeed: false,
+    hasDynamicFruits: true
+  },
+  8: { // Variable speed
+    rotationSpeed: 5,
+    throwSpeed: 150,
+    totalKnives: 4,
+    minApples: 3,
+    maxApples: 5,
+    minAngleGap: 30,
+    hasMovingApples: true,
+    hasBonusFruits: true,
+    hasObstacles: true,
+    hasVariableSpeed: true,
+    hasDynamicFruits: true
+  },
+  9: { // Power-ups
+    rotationSpeed: 5.5,
+    throwSpeed: 150,
+    totalKnives: 3,
+    minApples: 3,
+    maxApples: 5,
+    minAngleGap: 30,
+    hasMovingApples: true,
+    hasBonusFruits: true,
+    hasObstacles: true,
+    hasVariableSpeed: true,
+    hasDynamicFruits: true,
+    hasPowerUps: true
+  },
+  10: { // Ultimate challenge
+    rotationSpeed: 6,
+    throwSpeed: 150,
+    totalKnives: 3,
+    minApples: 4,
+    maxApples: 6,
+    minAngleGap: 25,
+    hasMovingApples: true,
+    hasBonusFruits: true,
+    hasObstacles: true,
+    hasVariableSpeed: true,
+    hasDynamicFruits: true,
+    hasPowerUps: true
+  }
 };
+
+// Current level configuration
+const gameOptions = levelConfigs[currentLevel];
 
 
 function PlayGame() {
@@ -27,6 +151,7 @@ function PlayGame() {
   let appleGroup;
   let remainingKnives;
   let knivesText;
+  let fruitCutSound;
 
   const COLLISION_ANGLE_THRESHOLD = 15; // degrees
 
@@ -66,14 +191,13 @@ function PlayGame() {
 
     this.time.delayedCall(1000, () => {
       // show a nicer popup instead of native alert? keep simple for now
-      if (confirm("💥 Game Over! All knives fell! Restart?")) {
+      if (confirm("💥 Game Over! All knives fell! Restart level?")) {
         // ensure bg music stops before restart
         if (bgMusic && bgMusic.isPlaying) bgMusic.stop();
-            // reload to main menu or just reload page
         window.location.reload();
       } else {
         if (bgMusic && bgMusic.isPlaying) bgMusic.stop();
-        // reload to main menu or just reload page
+        localStorage.setItem("currentLevel", 1); // Reset to level 1
         window.location.reload();
       }
     });
@@ -87,6 +211,10 @@ function PlayGame() {
   this.load.audio("bgMusic", "assets/audio/bg.mp3");
   this.load.audio("hit", "assets/audio/hit.mp3");
   this.load.audio("collision", "assets/audio/collision.mp3");
+  this.load.image("apple_left", "assets/images/apple_left_side.png");
+this.load.image("apple_right", "assets/images/apple_right_side.png");
+this.load.audio("fruitCut", "assets/audio/fruit_cut.mp3");
+
   };
 
   // create objects
@@ -94,7 +222,9 @@ function PlayGame() {
     // re-read settings each time scene created
     bgSoundEnabled = localStorage.getItem("bgSound") === "true";
     gameSoundEnabled = localStorage.getItem("gameSound") === "true";
-
+    
+    // Create sound objects once
+    fruitCutSound = this.sound.add("fruitCut", { volume: 1.0 });
     canThrow = true;
 
     // create Phaser sound objects
@@ -122,10 +252,24 @@ function PlayGame() {
     target = this.add.sprite(game.config.width / 2, 400, "target");
     target.depth = 1;
 
+    // show level text
+    this.add.text(
+      game.config.width / 2,
+      40,
+      `Level ${currentLevel}`,
+      {
+        fontSize: "52px",
+        color: "#ff6600",
+        fontFamily: "Arial",
+        align: "center",
+        fontWeight: "bold"
+      }
+    ).setOrigin(0.5);
+
     // show remaining knives text
     knivesText = this.add.text(
       game.config.width / 2,
-      80,
+      100,
       `Knives Left: ${remainingKnives}`,
       {
         fontSize: "48px",
@@ -135,23 +279,36 @@ function PlayGame() {
       }
     ).setOrigin(0.5);
 
-    // randomly add 1-4 apples
-    let numApples = Phaser.Math.Between(1, 5);
-    for (let i = 0; i < numApples; i++) {
-      const newApple = this.add.sprite(0, 0, "apple");
-      newApple.setScale(0.10); // adjust as needed
+    // Add level-appropriate number of apples
+let numApples = Phaser.Math.Between(gameOptions.minApples, gameOptions.maxApples);
+let angleList = [];
+const minAngleGap = gameOptions.minAngleGap; // Use level-specific gap
 
-      const angle = Phaser.Math.Between(0, 360);
-      newApple.angle = angle;
-      const radians = Phaser.Math.DegToRad(angle + 90);
+for (let i = 0; i < numApples; i++) {
+  let attempts = 0;
+  let angle;
+  do {
+    angle = Phaser.Math.Between(0, 359);
+    attempts++;
+    // Check angular gap with all current apples
+  } while (
+    angleList.some(a => Math.abs(Phaser.Math.Angle.WrapDegrees(angle - a)) < minAngleGap) &&
+    attempts < 30
+  );
+  angleList.push(angle);
+  const newApple = this.add.sprite(0, 0, "apple");
+  newApple.setScale(0.10);
 
-      // Adjusted radius so apple sits fully outside target surface
-      const appleRadius = target.width / 2 + (newApple.displayHeight / 2) - 5;
+  newApple.angle = angle;
+  const radians = Phaser.Math.DegToRad(angle + 90);
 
-      newApple.x = target.x + appleRadius * Math.cos(radians);
-      newApple.y = target.y + appleRadius * Math.sin(radians);
-      appleGroup.add(newApple);
-    }
+  const appleRadius = target.width / 2 + (newApple.displayHeight / 2) - 5;
+
+  newApple.x = target.x + appleRadius * Math.cos(radians);
+  newApple.y = target.y + appleRadius * Math.sin(radians);
+  appleGroup.add(newApple);
+}
+
 
     // input: click or tap to throw
     this.input.on("pointerdown", () => {
@@ -194,16 +351,55 @@ function PlayGame() {
               // compare with knife attach angle
               const diff = Phaser.Math.Angle.WrapDegrees(attachAngle - appleAngle);
 
-              if (Math.abs(diff) < 10) { // knife hits apple
-                this.tweens.add({
-                  targets: apple,
-                  y: game.config.height + 200,
-                  angle: Phaser.Math.Between(-180, 180),
-                  duration: 600,
-                  ease: "Cubic.easeIn",
-                  onComplete: () => apple.destroy()
-                });
-              }
+if (Math.abs(diff) < 10) { // knife hits apple
+    // Play sound immediately with no delay
+    try {
+      if (gameSoundEnabled && fruitCutSound) {
+        fruitCutSound.stop(); // Stop any previous playback
+        fruitCutSound.play(); // Play immediately
+      }
+    } catch (e) {
+      // handle errors silently
+    }
+
+  // Hide (or destroy) original apple immediately
+  apple.setVisible(false);
+
+  // Create the two halves at the same position as the apple
+  const leftHalf = this.add.sprite(apple.x, apple.y, "apple_left");
+  const rightHalf = this.add.sprite(apple.x, apple.y, "apple_right");
+
+  // Optionally scale to match original apple
+  leftHalf.setScale(0.10);
+  rightHalf.setScale(0.10);
+
+  // Animate halves: move left and right, rotate, fade out
+  this.tweens.add({
+    targets: leftHalf,
+    x: apple.x - 40, // move to left
+    angle: apple.angle - 30, // slight spin
+    alpha: 0, // fade out
+    duration: 700,
+    ease: "Cubic.easeOut",
+    onComplete: () => leftHalf.destroy()
+  });
+
+  this.tweens.add({
+    targets: rightHalf,
+    x: apple.x + 40, // move to right
+    angle: apple.angle + 30, // slight spin
+    alpha: 0, // fade out
+    duration: 700,
+    ease: "Cubic.easeOut",
+    onComplete: () => rightHalf.destroy()
+  });
+
+  // Finally destroy apple object
+  apple.destroy();
+}
+
+
+
             });
 
             // decrease knife count
@@ -214,12 +410,25 @@ function PlayGame() {
             if (remainingKnives === 0) {
               canThrow = false; // prevent further throws
               this.time.delayedCall(200, () => {
-                if (confirm("🎉 You Win! Start a new game?")) {
-                  if (bgMusic && bgMusic.isPlaying) bgMusic.stop();
-               window.location.reload();
+                if (currentLevel < 10) {
+                  if (confirm(`🎉 Level ${currentLevel} Complete! Continue to Level ${currentLevel + 1}?`)) {
+                    localStorage.setItem("currentLevel", currentLevel + 1);
+                    if (bgMusic && bgMusic.isPlaying) bgMusic.stop();
+                    window.location.reload();
+                  } else {
+                    if (bgMusic && bgMusic.isPlaying) bgMusic.stop();
+                    localStorage.setItem("currentLevel", 1); // Reset to level 1
+                    window.location.reload();
+                  }
                 } else {
-                  if (bgMusic && bgMusic.isPlaying) bgMusic.stop();
-                  window.location.reload();
+                  if (confirm("🏆 Congratulations! You've completed all levels! Start over?")) {
+                    localStorage.setItem("currentLevel", 1);
+                    if (bgMusic && bgMusic.isPlaying) bgMusic.stop();
+                    window.location.reload();
+                  } else {
+                    if (bgMusic && bgMusic.isPlaying) bgMusic.stop();
+                    window.location.reload();
+                  }
                 }
               });
               return;
